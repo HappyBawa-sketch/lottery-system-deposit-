@@ -1,264 +1,212 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rajshree Punjab Lottery (Local)</title>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700&display=swap" rel="stylesheet">
-<style>
-:root{
-  --bg:#0e0e0f; --card:#141415; --muted:#6e6e72; --gold:#ffcf33;
-  --gold-2:#ffbf00; --warn:#e85d5d; --accent:#2a2a2f; --tableRow:#1b1b1f;
-  --stroke:#29292d; --radius:18px;
-}
-*{box-sizing:border-box;}
-html,body{height:100%; margin:0; font-family:'Montserrat',system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial,sans-serif; color:#fff; background:var(--bg);}
-header{position:sticky; top:0; background:linear-gradient(180deg,#0f0f11 0%,#0c0c0d 100%); border-bottom:1px solid #19191c; padding:12px 14px; text-align:center; font-weight:700; color:#eaeaea; letter-spacing:.3px;}
-.wrap{max-width:760px;margin:0 auto;padding:14px;}
-.card{background:var(--card); border:1px solid var(--stroke); border-radius:var(--radius); padding:16px; box-shadow:0 8px 30px rgba(0,0,0,.45);}
-.title{font-size:26px; line-height:1.2; font-weight:800; color:var(--gold); text-shadow:0 1px 0 #000;}
-.sub{margin-top:4px; color:#c6c6c9; font-size:13px;}
-.meta{display:flex; align-items:center; justify-content:space-between; margin:12px 0 8px; color:#cfcfd4; font-size:12px;}
-.countdown{text-align:center; font-weight:800; letter-spacing:2px; font-size:46px; color:var(--warn); margin:10px 0 14px; text-shadow:0 0 20px rgba(232,93,93,.35);}
-.abc{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:8px;}
-.tile{position:relative; background:linear-gradient(180deg,#141415 0%,#121213 100%); border:2px solid var(--gold-2); border-radius:16px; height:96px; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 24px rgba(255,191,0,.25);}
-.tile .label{position:absolute; top:8px; left:10px; font-size:13px; color:#9c8a3d; font-weight:800; letter-spacing:.4px;}
-.tile .value{font-size:34px; font-weight:900; color:var(--gold); text-shadow:0 1px 0 #000, 0 0 14px rgba(255,207,51,.35);}
-.tile.flash{animation:pop .65s ease;}
-@keyframes pop{0%{transform:scale(1)}35%{transform:scale(1.08)}100%{transform:scale(1)}}
-nav.tabs{display:flex; gap:8px; margin-bottom:10px;}
-nav.tabs button{padding:10px 12px; border-radius:10px; border:1px solid #2c2c30; background:#19191c; color:#d6d6da; font-weight:700; cursor:pointer;}
-nav.tabs button.active{background:#221d0f; color:#ffcf33; border-color:#4a3a12;}
-.table{overflow:auto; border-radius:12px; border:1px solid var(--stroke); margin-top:10px;}
-table{width:100%; border-collapse:collapse; min-width:480px;}
-th,td{padding:12px 10px; text-align:center;}
-thead th{background:#201f22; color:#d9d9dd; font-weight:800; font-size:13px; border-bottom:1px solid var(--stroke);}
-tbody tr{ background:var(--tableRow); border-bottom:1px solid #222329;}
-tbody tr:nth-child(even){ background:#15161a; }
-tbody td{ color:#d6d6da; font-weight:600; }
-tr.live{ outline:2px solid rgba(255,207,51,.5); position:relative; }
-tr.live td{ color:#ffda58; }
-.admin-list{display:flex;flex-direction:column;gap:10px; max-height:60vh; overflow:auto;}
-.admin-item{display:grid;grid-template-columns:72px repeat(3,1fr);gap:8px; align-items:center; background:#121214; border:1px solid #2a2a2f; border-radius:12px; padding:10px;}
-.admin-time{font-weight:900;color:#ffda58;text-align:center}
-.admin-actions{display:flex; gap:10px; margin-top:12px; justify-content:flex-end;}
-.btn{padding:10px 14px; border-radius:10px; border:1px solid #2c2c30; background:#19191c; color:#e9e9ee; font-weight:800; cursor:pointer;}
-.btn.gold{ background:#221d0f; color:#ffcf33; border-color:#4a3a12; } .btn.gold:hover{ filter:brightness(1.1) }
-.btn.danger{ background:#211416; color:#ff9c9c; border-color:#3a2020; }
-@media (min-width:768px){ .title{font-size:30px} .countdown{font-size:52px} .tile{height:104px} }
+import { useState, useEffect } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, doc, setDoc, onSnapshot, getDoc } from 'firebase/firestore';
 
-/* Message Box Styles */
-.message-box {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: var(--card);
-  border: 1px solid var(--stroke);
-  border-radius: var(--radius);
-  padding: 20px;
-  box-shadow: 0 8px 30px rgba(0,0,0,.6);
-  z-index: 1000;
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
-  text-align: center;
-  max-width: 80%;
-}
-.message-box p {
-  margin: 0;
-}
-.message-box .close-btn {
-  background: var(--gold);
-  color: var(--bg);
-  padding: 8px 16px;
-  border-radius: 8px;
-  border: none;
-  font-weight: bold;
-  cursor: pointer;
-}
-</style>
-</head>
-<body>
-<header>Rajshree Punjab Lottery</header>
-<div class="wrap">
-<nav class="tabs" style="justify-content:center">
-  <button id="tab-live" class="active" onclick="showTab('live')">Live</button>
-  <button id="tab-admin" onclick="showTab('admin')">Admin</button>
-</nav>
+// Define the time parameters
+const DRAW_START = 9;
+const DRAW_END = 21;
+const SLOT_MIN = 15;
+const ADMIN_PASSWORD = "admin123";
 
-<!-- LIVE -->
-<section id="live" class="card">
-  <div class="title">Rajshree Punjab Lottery</div>
-  <div class="sub">15-Minute Draws • Live Results (9 AM – 9 PM)</div>
-  <div class="meta">
-    <div id="dateNow">--/--/---- | --:--:--</div>
-    <div id="windowNow">Next: <span id="nextSlot">--:--</span></div>
-  </div>
-  <div id="countdown" class="countdown">00 : 00</div>
-  <div class="abc">
-    <div class="tile"><span class="label">A</span><span class="value" id="valA">--</span></div>
-    <div class="tile"><span class="label">B</span><span class="value" id="valB">--</span></div>
-    <div class="tile"><span class="label">C</span><span class="value" id="valC">--</span></div>
-  </div>
-  <div class="table">
-    <table>
-      <thead><tr><th>Time</th><th>A</th><th>B</th><th>C</th></tr></thead>
-      <tbody id="tbodyToday"></tbody>
-    </table>
-  </div>
-</section>
+// Helper function to pad numbers with a leading zero
+const pad2 = n => String(n).padStart(2, '0');
 
-<!-- ADMIN -->
-<section id="admin" class="card" style="display:none">
-  <div id="adminLogin" style="display:flex; gap:8px; align-items:center; margin:8px 0 14px;">
-    <input id="adminPass" type="password" placeholder="Enter password">
-    <button class="btn gold" onclick="checkLogin()">Login</button>
-  </div>
-  <div id="adminPanel" style="display:none">
-    <div class="admin-list" id="adminList"></div>
-    <div class="admin-actions">
-      <button class="btn gold" onclick="saveAdmin()">Save</button>
-      <button class="btn danger" onclick="resetToday()">Reset Today</button>
-      <button class="btn" onclick="exportCSV()">Export CSV</button>
-      <button class="btn" onclick="logoutAdmin()">Logout</button>
-    </div>
-  </div>
-</section>
-</div>
+// The main App component
+export default function App() {
+  const [drawsToday, setDrawsToday] = useState([]);
+  const [activeTab, setActiveTab] = useState('live');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [password, setPassword] = useState('');
+  const [liveDraw, setLiveDraw] = useState({ A: '--', B: '--', C: '--' });
+  const [nextDrawTime, setNextDrawTime] = useState('--:--');
+  const [countdown, setCountdown] = useState('-- : --');
+  const [loading, setLoading] = useState(true);
+  const [db, setDb] = useState(null);
+  const [userId, setUserId] = useState(null);
 
-<!-- Custom Message Box -->
-<div id="messageBox" class="message-box">
-  <p id="messageText"></p>
-  <button class="close-btn" onclick="closeMessageBox()">OK</button>
-</div>
+  // Firestore path for the public lottery data
+  const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+  const lotteryDocPath = `artifacts/${appId}/public/data/lottery-draws`;
 
-<script>
-  let drawsToday = [];
-  const DRAW_START = 9, DRAW_END = 21, SLOT_MIN = 15;
-  const adminPassword = "admin123";
-  const LOCAL_STORAGE_KEY = 'lottery_draws';
+  // Initialize Firebase and set up the auth state listener
+  useEffect(() => {
+    try {
+      // The variable name is now FIREBASE_CONFIG
+      const firebaseConfig = JSON.parse(FIREBASE_CONFIG);
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const firestore = getFirestore(app);
+      setDb(firestore);
 
-  // Utility function to pad numbers with a leading zero
-  const pad2 = n => String(n).padStart(2, '0');
+      // Listen for authentication state changes
+      const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        if (user) {
+          setUserId(user.uid);
+          console.log("User signed in with UID:", user.uid);
+        } else {
+          try {
+            // Sign in with the provided custom token or anonymously if not available
+            if (typeof __initial_auth_token !== 'undefined') {
+              const userCredential = await signInWithCustomToken(auth, __initial_auth_token);
+              setUserId(userCredential.user.uid);
+              console.log("Signed in with custom token.");
+            } else {
+              const userCredential = await signInAnonymously(auth);
+              setUserId(userCredential.user.uid);
+              console.log("Signed in anonymously.");
+            }
+          } catch (error) {
+            console.error("Firebase Auth Error:", error);
+          }
+        }
+      });
+      return () => unsubscribe();
+    } catch (error) {
+      console.error("Firebase initialization failed:", error);
+    }
+  }, []);
 
-  // Function to show a custom message box
-  function showMessageBox(message) {
-    const msgBox = document.getElementById('messageBox');
-    const msgText = document.getElementById('messageText');
-    msgText.textContent = message;
-    msgBox.style.display = 'flex';
-  }
+  // Fetch or generate data from Firestore
+  useEffect(() => {
+    if (!db) return; // Wait for the database to be initialized
 
-  // Function to close the custom message box
-  function closeMessageBox() {
-    const msgBox = document.getElementById('messageBox');
-    msgBox.style.display = 'none';
-  }
+    const docRef = doc(db, lotteryDocPath);
+
+    // Set up the real-time listener for the lottery data
+    const unsubscribe = onSnapshot(docRef, async (docSnap) => {
+      let data = docSnap.data();
+      const todayDateStr = new Date().toISOString().split('T')[0];
+
+      if (!docSnap.exists() || data.date !== todayDateStr) {
+        // No data or old data exists, so generate a new set for today
+        console.log("Generating new draws for the day and saving to Firestore.");
+        const newDraws = generateDraws();
+        const initialData = {
+          date: todayDateStr,
+          draws: newDraws,
+        };
+        await setDoc(docRef, initialData);
+        setDrawsToday(newDraws);
+      } else {
+        // Data for today exists, load it
+        console.log("Loading draws from Firestore.");
+        setDrawsToday(data.draws);
+      }
+      setLoading(false); // Data is loaded
+    }, (error) => {
+      console.error("Error fetching Firestore data:", error);
+      setLoading(false); // Stop loading on error
+    });
+
+    return () => unsubscribe(); // Clean up the listener on unmount
+  }, [db, lotteryDocPath]);
 
   // Generate an array of lottery draw slots for the day
-  function generateDraws() {
-    console.log("Generating new draws for the day.");
+  const generateDraws = () => {
     const newDraws = [];
     const now = new Date();
     const dateStr = now.toISOString().split('T')[0];
-
     for (let h = DRAW_START; h < DRAW_END; h++) {
-        for (let m = 0; m < 60; m += SLOT_MIN) {
-            newDraws.push({
-                date: dateStr,
-                time: pad2(h) + ":" + pad2(m),
-                A: String(Math.floor(Math.random() * 100)).padStart(2, '0'),
-                B: String(Math.floor(Math.random() * 100)).padStart(2, '0'),
-                C: String(Math.floor(Math.random() * 100)).padStart(2, '0')
-            });
-        }
+      for (let m = 0; m < 60; m += SLOT_MIN) {
+        newDraws.push({
+          date: dateStr,
+          time: pad2(h) + ":" + pad2(m),
+          A: String(Math.floor(Math.random() * 100)).padStart(2, '0'),
+          B: String(Math.floor(Math.random() * 100)).padStart(2, '0'),
+          C: String(Math.floor(Math.random() * 100)).padStart(2, '0'),
+        });
+      }
     }
     return newDraws;
-  }
-  
-  // Save the draws to local storage
-  function saveDrawsToStorage() {
-      const data = {
-          date: new Date().toISOString().split('T')[0],
-          draws: drawsToday
-      };
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
-      console.log("Draws saved to local storage.");
-  }
+  };
 
-  // Load draws from local storage
-  function loadDrawsFromStorage() {
-      const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (storedData) {
-          const data = JSON.parse(storedData);
-          const todayDateStr = new Date().toISOString().split('T')[0];
-          // Check if the stored data is from today
-          if (data.date === todayDateStr) {
-              drawsToday = data.draws;
-              console.log("Draws loaded from local storage.");
-              return true;
-          }
+  // Update live view based on time
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date();
+      const currMinutes = now.getHours() * 60 + now.getMinutes();
+
+      let nextSlotObj = null;
+      for (const slot of drawsToday) {
+        const [h, m] = slot.time.split(':').map(Number);
+        if (h * 60 + m > currMinutes) {
+          nextSlotObj = slot;
+          break;
+        }
       }
-      console.log("No draws found for today in local storage. Starting fresh.");
-      return false;
-  }
 
-  // Check login logic
-  function checkLogin() {
-    const pass = document.getElementById('adminPass').value;
-    if (pass === adminPassword) {
-      document.getElementById('adminLogin').style.display = 'none';
-      document.getElementById('adminPanel').style.display = 'block';
-      populateAdmin();
+      if (nextSlotObj) {
+        const [h, m] = nextSlotObj.time.split(':').map(Number);
+        const nextDate = new Date();
+        nextDate.setHours(h);
+        nextDate.setMinutes(m);
+        nextDate.setSeconds(0);
+        nextDate.setMilliseconds(0);
+        const diff = Math.max(0, (nextDate - now) / 1000);
+        const mins = Math.floor(diff / 60);
+        const secs = Math.floor(diff % 60);
+        setCountdown(`${pad2(mins)} : ${pad2(secs)}`);
+        setNextDrawTime(nextSlotObj.time);
+      } else {
+        setCountdown('-- : --');
+        setNextDrawTime('--:--');
+      }
+
+      const liveSlot = drawsToday.find(slot => {
+        const [h, m] = slot.time.split(':').map(Number);
+        const currentSlotMinutes = Math.floor(now.getMinutes() / SLOT_MIN) * SLOT_MIN;
+        return now.getHours() === h && currentSlotMinutes === m;
+      });
+      if (liveSlot) {
+        setLiveDraw({ A: liveSlot.A, B: liveSlot.B, C: liveSlot.C });
+      } else {
+        setLiveDraw({ A: '--', B: '--', C: '--' });
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [drawsToday]);
+
+  // Handle admin login
+  const handleLogin = () => {
+    if (password === ADMIN_PASSWORD) {
+      setIsAdmin(true);
+      alert('Login successful!');
     } else {
-      showMessageBox("Wrong password! Please try again.");
+      alert('Wrong password! Please try again.');
     }
-  }
+    setPassword('');
+  };
 
-  // Admin panel population
-  function populateAdmin() {
-    const list = document.getElementById('adminList');
-    list.innerHTML = '';
-    drawsToday.forEach((slot, i) => {
-      const div = document.createElement('div');
-      div.className = 'admin-item';
-      div.innerHTML = `
-        <div class="admin-time">${slot.time}</div>
-        <input type="text" value="${slot.A}" id="inputA${i}" maxlength="2" inputmode="numeric" pattern="[0-9]*">
-        <input type="text" value="${slot.B}" id="inputB${i}" maxlength="2" inputmode="numeric" pattern="[0-9]*">
-        <input type="text" value="${slot.C}" id="inputC${i}" maxlength="2" inputmode="numeric" pattern="[0-9]*">
-      `;
-      list.appendChild(div);
-    });
-  }
+  // Handle saving admin changes to Firestore
+  const handleSaveAdmin = async () => {
+    if (!db) return;
+    try {
+      const docRef = doc(db, lotteryDocPath);
+      await setDoc(docRef, { draws: drawsToday }, { merge: true });
+      alert('Saved! Changes are now live for all users.');
+    } catch (error) {
+      console.error("Error saving to Firestore:", error);
+      alert('Failed to save changes.');
+    }
+  };
 
-  // Save admin changes and update local storage
-  function saveAdmin() {
-    drawsToday.forEach((slot, i) => {
-      const inputA = document.getElementById(`inputA${i}`);
-      const inputB = document.getElementById(`inputB${i}`);
-      const inputC = document.getElementById(`inputC${i}`);
-      slot.A = inputA.value.padStart(2, '0');
-      slot.B = inputB.value.padStart(2, '0');
-      slot.C = inputC.value.padStart(2, '0');
-    });
-    saveDrawsToStorage();
-    showMessageBox("Saved! Changes will be reflected live and will persist until the next day.");
-  }
+  // Handle resetting today's draws in Firestore
+  const handleResetToday = async () => {
+    if (!db) return;
+    try {
+      const docRef = doc(db, lotteryDocPath);
+      const newDraws = generateDraws();
+      await setDoc(docRef, { draws: newDraws }, { merge: true });
+      alert('Today\'s draws have been reset.');
+    } catch (error) {
+      console.error("Error resetting draws:", error);
+      alert('Failed to reset draws.');
+    }
+  };
 
-  // Reset today's draws locally
-  function resetToday() {
-    drawsToday = generateDraws();
-    saveDrawsToStorage();
-    showMessageBox("Today's draws have been reset.");
-    populateAdmin();
-    updateLive();
-  }
-
-  // Export CSV function
-  function exportCSV() {
+  // Handle exporting data to CSV
+  const handleExportCSV = () => {
     let csv = "date,time,A,B,C\n";
     drawsToday.forEach(d => csv += `${d.date},${d.time},${d.A},${d.B},${d.C}\n`);
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -267,107 +215,214 @@ tr.live td{ color:#ffda58; }
     a.href = url;
     a.download = 'draws.csv';
     a.click();
+  };
+
+  const handleLogout = () => {
+    setIsAdmin(false);
+  };
+  
+  // Inline styles for the component to keep it self-contained
+  const styles = {
+    // Colors and variables
+    '--bg': '#0e0e0f',
+    '--card': '#141415',
+    '--muted': '#6e6e72',
+    '--gold': '#ffcf33',
+    '--gold-2': '#ffbf00',
+    '--warn': '#e85d5d',
+    '--accent': '#2a2a2f',
+    '--tableRow': '#1b1b1f',
+    '--stroke': '#29292d',
+    '--radius': '18px',
+    // ...other styles as needed
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen text-lg text-gray-400">
+        Loading...
+      </div>
+    );
   }
 
-  function logoutAdmin() {
-    document.getElementById('adminPanel').style.display = 'none';
-    document.getElementById('adminLogin').style.display = 'flex';
-    document.getElementById('adminPass').value = '';
-  }
+  return (
+    <div className="min-h-screen font-['Montserrat'] text-white bg-gray-950" style={styles}>
+      <header className="sticky top-0 bg-gradient-to-b from-gray-900 to-gray-900 border-b border-gray-800 p-3 text-center font-bold text-gray-100 tracking-wider">
+        Rajshree Punjab Lottery
+      </header>
+      <div className="max-w-3xl mx-auto p-4">
+        <nav className="flex gap-2 mb-4 justify-center">
+          <button
+            className={`py-2 px-3 rounded-xl border border-gray-700 font-bold cursor-pointer transition-colors ${activeTab === 'live' ? 'bg-yellow-950 text-yellow-400 border-yellow-800' : 'bg-gray-800 text-gray-300'}`}
+            onClick={() => setActiveTab('live')}
+          >
+            Live
+          </button>
+          <button
+            className={`py-2 px-3 rounded-xl border border-gray-700 font-bold cursor-pointer transition-colors ${activeTab === 'admin' ? 'bg-yellow-950 text-yellow-400 border-yellow-800' : 'bg-gray-800 text-gray-300'}`}
+            onClick={() => setActiveTab('admin')}
+          >
+            Admin
+          </button>
+        </nav>
 
-  function showTab(tab) {
-    document.getElementById('live').style.display = tab === 'live' ? 'block' : 'none';
-    document.getElementById('admin').style.display = tab === 'admin' ? 'block' : 'none';
-    document.getElementById('tab-live').classList.toggle('active', tab === 'live');
-    document.getElementById('tab-admin').classList.toggle('active', tab === 'admin');
-    
-    if (tab === 'admin') {
-      if (document.getElementById('adminPanel').style.display === 'block') {
-          populateAdmin();
-      }
-    }
-  }
+        {/* Live Section */}
+        {activeTab === 'live' && (
+          <section className="bg-gray-900 border border-gray-800 rounded-2xl p-4 shadow-xl">
+            <h1 className="text-3xl font-extrabold text-yellow-400">Rajshree Punjab Lottery</h1>
+            <p className="mt-1 text-sm text-gray-400">15-Minute Draws • Live Results (9 AM – 9 PM)</p>
+            <div className="flex items-center justify-between mt-3 text-sm text-gray-300">
+              <span>{new Date().toLocaleString()}</span>
+              <span>Next: <span className="font-semibold">{nextDrawTime}</span></span>
+            </div>
+            <div className="text-center font-extrabold text-5xl tracking-widest text-red-500 my-3">
+              {countdown}
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="relative bg-gray-900 border-2 border-yellow-400 rounded-2xl h-24 flex items-center justify-center shadow-xl">
+                <span className="absolute top-2 left-3 text-xs font-extrabold text-yellow-600 tracking-wider">A</span>
+                <span className="text-4xl font-extrabold text-yellow-400">{liveDraw.A}</span>
+              </div>
+              <div className="relative bg-gray-900 border-2 border-yellow-400 rounded-2xl h-24 flex items-center justify-center shadow-xl">
+                <span className="absolute top-2 left-3 text-xs font-extrabold text-yellow-600 tracking-wider">B</span>
+                <span className="text-4xl font-extrabold text-yellow-400">{liveDraw.B}</span>
+              </div>
+              <div className="relative bg-gray-900 border-2 border-yellow-400 rounded-2xl h-24 flex items-center justify-center shadow-xl">
+                <span className="absolute top-2 left-3 text-xs font-extrabold text-yellow-600 tracking-wider">C</span>
+                <span className="text-4xl font-extrabold text-yellow-400">{liveDraw.C}</span>
+              </div>
+            </div>
+            <div className="mt-4 overflow-auto rounded-xl border border-gray-800">
+              <table className="min-w-full">
+                <thead>
+                  <tr className="bg-gray-800 text-gray-200 font-extrabold text-sm border-b border-gray-800">
+                    <th className="py-3 px-2 text-center">Time</th>
+                    <th className="py-3 px-2 text-center">A</th>
+                    <th className="py-3 px-2 text-center">B</th>
+                    <th className="py-3 px-2 text-center">C</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {drawsToday.filter(slot => {
+                    const now = new Date();
+                    const [h, m] = slot.time.split(':').map(Number);
+                    return now.getHours() * 60 + now.getMinutes() >= h * 60 + m;
+                  }).map((slot, index) => (
+                    <tr key={index} className={`border-b border-gray-800 ${
+                      Math.floor(new Date().getMinutes() / SLOT_MIN) * SLOT_MIN === parseInt(slot.time.split(':')[1]) &&
+                      new Date().getHours() === parseInt(slot.time.split(':')[0]) ? 'bg-yellow-950 outline outline-2 outline-yellow-600' : 'bg-gray-800'
+                    }`}>
+                      <td className={`py-3 px-2 text-center text-gray-300 font-semibold ${
+                        Math.floor(new Date().getMinutes() / SLOT_MIN) * SLOT_MIN === parseInt(slot.time.split(':')[1]) &&
+                        new Date().getHours() === parseInt(slot.time.split(':')[0]) ? 'text-yellow-300' : ''
+                      }`}>{slot.time}</td>
+                      <td className={`py-3 px-2 text-center text-gray-300 font-semibold ${
+                        Math.floor(new Date().getMinutes() / SLOT_MIN) * SLOT_MIN === parseInt(slot.time.split(':')[1]) &&
+                        new Date().getHours() === parseInt(slot.time.split(':')[0]) ? 'text-yellow-300' : ''
+                      }`}>{slot.A}</td>
+                      <td className={`py-3 px-2 text-center text-gray-300 font-semibold ${
+                        Math.floor(new Date().getMinutes() / SLOT_MIN) * SLOT_MIN === parseInt(slot.time.split(':')[1]) &&
+                        new Date().getHours() === parseInt(slot.time.split(':')[0]) ? 'text-yellow-300' : ''
+                      }`}>{slot.B}</td>
+                      <td className={`py-3 px-2 text-center text-gray-300 font-semibold ${
+                        Math.floor(new Date().getMinutes() / SLOT_MIN) * SLOT_MIN === parseInt(slot.time.split(':')[1]) &&
+                        new Date().getHours() === parseInt(slot.time.split(':')[0]) ? 'text-yellow-300' : ''
+                      }`}>{slot.C}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
 
-  function updateLive() {
-    const now = new Date();
-    document.getElementById('dateNow').textContent = now.toLocaleString();
-    const currMinutes = now.getHours() * 60 + now.getMinutes();
-
-    let nextSlotObj = null;
-    for (const slot of drawsToday) {
-      const [h, m] = slot.time.split(':').map(Number);
-      if (h * 60 + m > currMinutes) {
-        nextSlotObj = slot;
-        break;
-      }
-    }
-
-    if (nextSlotObj) {
-      const [h, m] = nextSlotObj.time.split(':').map(Number);
-      const nextDate = new Date();
-      nextDate.setHours(h);
-      nextDate.setMinutes(m);
-      nextDate.setSeconds(0);
-      nextDate.setMilliseconds(0);
-      const diff = Math.max(0, (nextDate - now) / 1000);
-      const mins = Math.floor(diff / 60), secs = Math.floor(diff % 60);
-      document.getElementById('countdown').textContent = `${pad2(mins)} : ${pad2(secs)}`;
-      document.getElementById('nextSlot').textContent = nextSlotObj.time;
-    } else {
-      document.getElementById('countdown').textContent = '-- : --';
-      document.getElementById('nextSlot').textContent = '--';
-    }
-
-    const liveSlot = drawsToday.find(slot => {
-      const [h, m] = slot.time.split(':').map(Number);
-      const currentSlotMinutes = Math.floor(now.getMinutes() / SLOT_MIN) * SLOT_MIN;
-      return now.getHours() === h && currentSlotMinutes === m;
-    });
-
-    document.getElementById('valA').textContent = liveSlot ? liveSlot.A : '--';
-    document.getElementById('valB').textContent = liveSlot ? liveSlot.B : '--';
-    document.getElementById('valC').textContent = liveSlot ? liveSlot.C : '--';
-
-    populateTodayTable();
-  }
-
-  function populateTodayTable() {
-    const tbody = document.getElementById('tbodyToday');
-    tbody.innerHTML = '';
-    const now = new Date();
-    const currMinutes = now.getHours() * 60 + now.getMinutes();
-    drawsToday.forEach(slot => {
-      const [h, m] = slot.time.split(':').map(Number);
-      const slotMinutes = h * 60 + m;
-      if (slotMinutes <= currMinutes) {
-        const tr = document.createElement('tr');
-        if (slotMinutes === Math.floor(currMinutes / SLOT_MIN) * SLOT_MIN) tr.className = 'live';
-        tr.innerHTML = `<td>${slot.time}</td><td>${slot.A}</td><td>${slot.B}</td><td>${slot.C}</td>`;
-        tbody.appendChild(tr);
-      }
-    });
-  }
-
-  window.onload = function() {
-    // Attempt to load draws from local storage.
-    const isLoaded = loadDrawsFromStorage();
-    if (!isLoaded) {
-      // If no data or data is old, generate a new set of draws and save them.
-      drawsToday = generateDraws();
-      saveDrawsToStorage();
-    }
-    setInterval(updateLive, 1000);
-  }
-
-  // Expose functions to the global scope
-  window.checkLogin = checkLogin;
-  window.saveAdmin = saveAdmin;
-  window.resetToday = resetToday;
-  window.exportCSV = exportCSV;
-  window.logoutAdmin = logoutAdmin;
-  window.showTab = showTab;
-  window.closeMessageBox = closeMessageBox;
-
-</script>
-</body>
-</html>
+        {/* Admin Section */}
+        {activeTab === 'admin' && (
+          <section className="bg-gray-900 border border-gray-800 rounded-2xl p-4 shadow-xl">
+            {!isAdmin ? (
+              <div className="flex gap-2 items-center">
+                <input
+                  type="password"
+                  placeholder="Enter password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="flex-grow p-3 rounded-lg bg-gray-800 text-gray-300 border border-gray-700"
+                />
+                <button
+                  onClick={handleLogin}
+                  className="py-3 px-5 rounded-xl border border-yellow-800 bg-yellow-950 text-yellow-400 font-bold"
+                >
+                  Login
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div className="flex flex-col gap-2 max-h-96 overflow-y-auto pr-2">
+                  {drawsToday.map((slot, index) => (
+                    <div key={index} className="grid grid-cols-4 gap-2 items-center bg-gray-950 border border-gray-800 rounded-xl p-2">
+                      <div className="font-extrabold text-yellow-400 text-center">{slot.time}</div>
+                      <input
+                        type="text"
+                        value={slot.A}
+                        maxLength="2"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        onChange={(e) => {
+                          const newDraws = [...drawsToday];
+                          newDraws[index].A = e.target.value.padStart(2, '0');
+                          setDrawsToday(newDraws);
+                        }}
+                        className="w-full p-2 rounded-lg bg-gray-800 text-gray-300 border border-gray-700 text-center"
+                      />
+                      <input
+                        type="text"
+                        value={slot.B}
+                        maxLength="2"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        onChange={(e) => {
+                          const newDraws = [...drawsToday];
+                          newDraws[index].B = e.target.value.padStart(2, '0');
+                          setDrawsToday(newDraws);
+                        }}
+                        className="w-full p-2 rounded-lg bg-gray-800 text-gray-300 border border-gray-700 text-center"
+                      />
+                      <input
+                        type="text"
+                        value={slot.C}
+                        maxLength="2"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        onChange={(e) => {
+                          const newDraws = [...drawsToday];
+                          newDraws[index].C = e.target.value.padStart(2, '0');
+                          setDrawsToday(newDraws);
+                        }}
+                        className="w-full p-2 rounded-lg bg-gray-800 text-gray-300 border border-gray-700 text-center"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2 mt-4 justify-end">
+                  <button onClick={handleSaveAdmin} className="py-2 px-4 rounded-xl border border-yellow-800 bg-yellow-950 text-yellow-400 font-bold">
+                    Save
+                  </button>
+                  <button onClick={handleResetToday} className="py-2 px-4 rounded-xl border border-red-800 bg-red-950 text-red-400 font-bold">
+                    Reset Today
+                  </button>
+                  <button onClick={handleExportCSV} className="py-2 px-4 rounded-xl border border-gray-700 bg-gray-800 text-gray-300 font-bold">
+                    Export CSV
+                  </button>
+                  <button onClick={handleLogout} className="py-2 px-4 rounded-xl border border-gray-700 bg-gray-800 text-gray-300 font-bold">
+                    Logout
+                  </button>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+      </div>
+    </div>
+  );
+}
+      
