@@ -113,7 +113,6 @@ tr.live td{ color:#ffda58; }
 <!-- ADMIN -->
 <section id="admin" class="card" style="display:none">
   <div id="adminLogin" style="display:flex; gap:8px; align-items:center; margin:8px 0 14px;">
-    <!-- Corrected input type to 'password' -->
     <input id="adminPass" type="password" placeholder="Enter password">
     <button class="btn gold" onclick="checkLogin()">Login</button>
   </div>
@@ -139,6 +138,7 @@ tr.live td{ color:#ffda58; }
   let drawsToday = [];
   const DRAW_START = 9, DRAW_END = 21, SLOT_MIN = 15;
   const adminPassword = "admin123";
+  const LOCAL_STORAGE_KEY = 'lottery_draws';
 
   // Utility function to pad numbers with a leading zero
   const pad2 = n => String(n).padStart(2, '0');
@@ -159,6 +159,7 @@ tr.live td{ color:#ffda58; }
 
   // Generate an array of lottery draw slots for the day
   function generateDraws() {
+    console.log("Generating new draws for the day.");
     const newDraws = [];
     const now = new Date();
     const dateStr = now.toISOString().split('T')[0];
@@ -177,6 +178,33 @@ tr.live td{ color:#ffda58; }
     return newDraws;
   }
   
+  // Save the draws to local storage
+  function saveDrawsToStorage() {
+      const data = {
+          date: new Date().toISOString().split('T')[0],
+          draws: drawsToday
+      };
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
+      console.log("Draws saved to local storage.");
+  }
+
+  // Load draws from local storage
+  function loadDrawsFromStorage() {
+      const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (storedData) {
+          const data = JSON.parse(storedData);
+          const todayDateStr = new Date().toISOString().split('T')[0];
+          // Check if the stored data is from today
+          if (data.date === todayDateStr) {
+              drawsToday = data.draws;
+              console.log("Draws loaded from local storage.");
+              return true;
+          }
+      }
+      console.log("No draws found for today in local storage. Starting fresh.");
+      return false;
+  }
+
   // Check login logic
   function checkLogin() {
     const pass = document.getElementById('adminPass').value;
@@ -206,19 +234,24 @@ tr.live td{ color:#ffda58; }
     });
   }
 
-  // Save admin changes locally
+  // Save admin changes and update local storage
   function saveAdmin() {
     drawsToday.forEach((slot, i) => {
-      slot.A = document.getElementById(`inputA${i}`).value.padStart(2, '0');
-      slot.B = document.getElementById(`inputB${i}`).value.padStart(2, '0');
-      slot.C = document.getElementById(`inputC${i}`).value.padStart(2, '0');
+      const inputA = document.getElementById(`inputA${i}`);
+      const inputB = document.getElementById(`inputB${i}`);
+      const inputC = document.getElementById(`inputC${i}`);
+      slot.A = inputA.value.padStart(2, '0');
+      slot.B = inputB.value.padStart(2, '0');
+      slot.C = inputC.value.padStart(2, '0');
     });
-    showMessageBox("Saved! Changes will be reflected live (but not saved if you close the page).");
+    saveDrawsToStorage();
+    showMessageBox("Saved! Changes will be reflected live and will persist until the next day.");
   }
 
   // Reset today's draws locally
   function resetToday() {
     drawsToday = generateDraws();
+    saveDrawsToStorage();
     showMessageBox("Today's draws have been reset.");
     populateAdmin();
     updateLive();
@@ -316,7 +349,13 @@ tr.live td{ color:#ffda58; }
   }
 
   window.onload = function() {
-    drawsToday = generateDraws();
+    // Attempt to load draws from local storage.
+    const isLoaded = loadDrawsFromStorage();
+    if (!isLoaded) {
+      // If no data or data is old, generate a new set of draws and save them.
+      drawsToday = generateDraws();
+      saveDrawsToStorage();
+    }
     setInterval(updateLive, 1000);
   }
 
